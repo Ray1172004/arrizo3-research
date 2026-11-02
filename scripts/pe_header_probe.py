@@ -18,7 +18,7 @@ def inspect(path):
             raise ValueError("PE offset outside file")
         f.seek(pe_offset)
         pe = f.read(24)
-    if len(pe) < 24 or pe[:4] != b"PE\\0\\0":
+    if len(pe) < 24 or pe[:4] != b"PE\0\0":
         raise ValueError("Missing PE signature")
     machine, sections, stamp = struct.unpack_from("<HHI", pe, 4)
     return {"file": str(p), "machine_hex": f"0x{machine:04x}", "machine": MACHINES.get(machine, "Unknown"), "sections": sections, "timestamp": stamp}
@@ -30,4 +30,4 @@ if __name__ == "__main__":
     try:
         print(json.dumps(inspect(args.file), indent=2))
     except (ValueError, OSError) as exc:
-        parser.exit(1, f"error: {exc}\\n")
+        parser.exit(1, f"error: {exc}\n")
