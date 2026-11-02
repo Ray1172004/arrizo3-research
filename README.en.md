@@ -2,7 +2,7 @@
 
 # R3TR0 | Arrizo 3 Research
 
-**Reverse engineering a legacy automotive infotainment system: Chery Arrizo 3, CheryLink and Windows CE.**
+**Research on the Chery Arrizo 3 infotainment system and static analysis of reference CheryLink software.**
 
 [Español](README.md) · **English**
 
