@@ -2,7 +2,7 @@
 
 # R3TR0 | Arrizo 3 Research
 
-**Ingeniería inversa de un sistema multimedia automotriz: Chery Arrizo 3, CheryLink y Windows CE.**
+**Investigación del sistema multimedia del Chery Arrizo 3 y análisis estático de software CheryLink de referencia.**
 
 **Español** · [English](README.en.md)
 
