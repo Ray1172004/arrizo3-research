@@ -48,6 +48,23 @@ entry()
 
 The sample's `can not open input file`, `can not open output file`, `can not write output file`, `can not close output file` and `Everything is Ok` messages also occur in the public LZMA SDK example.
 
+## Confirmed extraction paths
+
+Inspecting the string constants passed to `FUN_000141c0` in Ghidra revealed two ASCII values:
+
+| Address | String | Role |
+| --- | --- | --- |
+| `0x0002e51c` | `CHERYLINK//CheryLink.7z` | 7z input archive |
+| `0x0002e510` | `CHERYLINK` | Base directory for extracted output |
+
+The `entry` call can therefore be read as follows (illustrative notation, not original source code):
+
+```c
+FUN_000141c0("CHERYLINK//CheryLink.7z", "CHERYLINK");
+```
+
+`FUN_000141c0` forwards the first argument to `FUN_000135c8`; it prepares the second argument in a local buffer before passing it as an output directory. Both strings are **relative paths**, so the absolute location depends on the updater's execution context. This finding concerns a **Tiggo 2** reference package, not firmware extracted from an Arrizo 3.
+
 ## Relevant decompiled calls
 
 Archive entry extraction:
