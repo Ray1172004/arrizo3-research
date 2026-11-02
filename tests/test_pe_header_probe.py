@@ -14,7 +14,7 @@ class ProbeTests(unittest.TestCase):
             data = bytearray(256)
             data[:2] = b"MZ"
             struct.pack_into("<I", data, 0x3c, 0x80)
-            data[0x80:0x84] = b"PE\\0\\0"
+            data[0x80:0x84] = b"PE\0\0"
             struct.pack_into("<HHI", data, 0x84, 0x1c0, 4, 0)
             p.write_bytes(data)
             found = inspect(p)
