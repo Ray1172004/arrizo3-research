@@ -72,6 +72,26 @@ local_18 = FUN_0001a100(
 
 The function also creates intermediate directories from archive entry separators. **Path handling with malicious archive names has not been validated, and this is not a vulnerability claim.**
 
+## Verifying `FUN_00013ef0`: directory creation
+
+Ghidra exposes the following code:
+
+```c
+iVar1 = Ordinal_160(param_1, 0);
+if (iVar1 == 0) {
+    local_14 = Ordinal_516();
+} else {
+    local_14 = 0;
+}
+return local_14;
+```
+
+A historical `COREDLL.dll` export mapping associates `Ordinal_160` with `CreateDirectoryW` and `Ordinal_516` with `GetLastError`. This exactly matches the behavior of `MyCreateDir` in the 2010 `7zMain.c` example: **return zero when a directory is created, otherwise return the OS error code**.
+
+Some calls to `FUN_00013ef0` in `FUN_000135c8` do not immediately check the return value. This resembles the upstream example and alone does not demonstrate a security vulnerability. `CreateDirectoryW` creates only the final path component; parent directories must be prepared by the caller.
+
+Sources: [`7zMain.c`](https://android.googlesource.com/platform/external/lzma/+/kitkat-dev/C/Util/7z/7zMain.c) · [Microsoft: CreateDirectory on Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/aa517316%28v%3Dmsdn.10%29) · [Historical COREDLL ordinals](https://blog.ch3cooh.jp/entry/20100803/1280838036).
+
 This analysis concerns a **Tiggo 2** reference package, not the installed **Arrizo 3** firmware. No vehicle modifications have occurred.
 
 ## Source comparison
