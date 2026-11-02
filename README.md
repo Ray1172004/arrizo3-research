@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚘 R3TR0 | Arrizo 3 Research
+# R3TR0 | Arrizo 3 Research
 
 **Ingeniería inversa de un sistema multimedia automotriz: Chery Arrizo 3, CheryLink y Windows CE.**
 
@@ -43,11 +43,13 @@
 
 En el primer hallazgo RE-001 estudié una rutina que recorre directorios, evita las entradas `.` y `..`, omite `EMMC_Check_File.txt` y contempla una excepción para `ceusbkwrapperdrv.dll`. **Es un análisis de funcionamiento, no un exploit.**
 
-## Capturas y evidencias
+## Evidencia visual
 
-**Próximamente:** capturas de Ghidra revisadas y diagramas del flujo de actualización. Por seguridad, no se incluyen imágenes con MachineID, datos personales, claves ni archivos originales del fabricante.
+![Cadenas de depuración identificadas en Ghidra](evidence/ghidra-defined-strings.jpg)
 
-Consulta [Política de evidencias](evidence/README.md).
+*Figura 1. Cadenas localizadas en el actualizador CheryLink del paquete de referencia Tiggo 2. No es firmware extraído del Arrizo 3.*
+
+Las demás capturas se añadirán después de revisar su legibilidad y privacidad.
 
 ## Estructura del repositorio
 
@@ -101,6 +103,6 @@ La inspección de archivos externos se realiza por separado, en directorios priv
 
 ## Créditos
 
-Investigación realizada con 💜 en Arch Linux por [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [Licencia del código propio](LICENSE) · [Seguridad](SECURITY.md).
+Investigación realizada en Arch Linux por [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [Licencia del código propio](LICENSE) · [Seguridad](SECURITY.md).
 
 Los nombres comerciales y el software de terceros pertenecen a sus respectivos titulares. Este repositorio solo publica documentación y herramientas originales, no binarios de Chery.
