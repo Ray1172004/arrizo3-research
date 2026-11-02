@@ -48,7 +48,27 @@ Source-open, destination-open, copy and extraction failures have separate log me
 
 When both streams opened successfully, `entry` ultimately sets `local_74 = 0` even after logging `copy data fail` or `ExtractFile fail`. An external caller relying only on the exit status might therefore miss these failures. No such caller or exploitable impact has been demonstrated.
 
-The actual mode strings at `DAT_0002e388` and `DAT_0002e408` have not yet been inspected. The body of `FUN_000141c0` remains to be reviewed.
+The actual mode strings at `DAT_0002e388` and `DAT_0002e408` have not yet been inspected. `FUN_000141c0` has now been inspected: it is a wrapper forwarding the operation to `FUN_000135c8`. Argument strings and the behavior of `FUN_000135c8` remain unverified.
+
+
+## Extraction wrapper: `FUN_000141c0`
+
+The `entry` function invokes `FUN_000141c0(0x2e51c, 0x2e510)` after copying the file. The complete decompilation reveals a small forwarding wrapper:
+
+```c
+undefined4 FUN_000141c0(int param_1, int param_2)
+{
+    // ... local initialization
+    local_18 = Ordinal_1068(param_2);
+    FUN_000134a4((int)&local_228, param_2, local_18);
+    uVar1 = FUN_000135c8(param_1, (int)&local_228);
+    return uVar1;
+}
+```
+
+`Ordinal_1068` likely obtains a length and `FUN_000134a4` prepares local data, but these helper behaviors need confirmation. `FUN_000135c8` receives the original first argument and the local buffer address. The wrapper forwards its return value to `entry`.
+
+**No evidence yet proves that `FUN_000135c8` is itself the decompressor.** It may perform additional setup or forward to another implementation. Data at `0x0002e510` and `0x0002e51c` also remain to be interpreted.
 
 ## References
 
