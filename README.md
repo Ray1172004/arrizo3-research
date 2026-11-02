@@ -1,87 +1,106 @@
-# Investigación de la unidad multimedia del Chery Arrizo 3
+<div align="center">
 
-[![Estado](https://img.shields.io/badge/estado-en_investigación-blue)](docs/06-roadmap.md) ![Método](https://img.shields.io/badge/método-análisis_estático-green) ![Vehículo](https://img.shields.io/badge/vehículo-sin_modificar-green)
+# 🚘 R3TR0 | Arrizo 3 Research
 
-**Idioma principal: español · [Read in English](README.en.md)**
+**Ingeniería inversa de un sistema multimedia automotriz: Chery Arrizo 3, CheryLink y Windows CE.**
 
-**Ciberseguridad automotriz · Ingeniería inversa de firmware · Windows CE / ARM · Ghidra · Proyección Android**
+**Español** · [English](README.en.md)
 
-> **Aviso de alcance:** el vehículo que motiva la investigación es un **Chery Arrizo 3 de 2021** con pantalla original. El paquete de actualización examinado hasta ahora corresponde a un **Tiggo 2** y se utiliza solo como muestra de referencia. No se ha demostrado que ambas pantallas compartan hardware, firmware ni sistema operativo.
+![Automotive](https://img.shields.io/badge/Automotive-Security-B49AFF) ![Windows CE](https://img.shields.io/badge/Windows_CE-ARMv4T-8A70DB) ![Ghidra](https://img.shields.io/badge/Ghidra-Reversing-7E65BD) ![Estado](https://img.shields.io/badge/Estado-En_investigación-orange)
 
-## ¿Qué quiero investigar?
+*Análisis estático · firmware embebido · Ghidra · metodología reproducible · sin modificaciones al vehículo*
 
-Comprender la arquitectura de la unidad multimedia original, identificar cómo funcionan sus mecanismos de actualización y estudiar posibles métodos **de solo lectura** para obtener el firmware correspondiente a su hardware. El propósito es aprender ingeniería inversa de sistemas embebidos sin comprometer el vehículo.
+</div>
 
-**Estado:** investigación en desarrollo. No se ha extraído el firmware original del Arrizo 3, no se ha modificado su memoria y **no se ha descubierto ni explotado una vulnerabilidad**.
+## Acerca del proyecto
 
-## Resultados observados
+**Arrizo 3 Research** es mi proyecto de aprendizaje e investigación sobre la pantalla multimedia original de un **Chery Arrizo 3 2021**. La meta es identificar su arquitectura y comprender los mecanismos de actualización antes de evaluar cualquier extracción o modificación del firmware.
 
-| Área | Resultado | Alcance |
-| --- | --- | --- |
-| Versión visible en Arrizo 3 | `ARRIZO 3_02_31.01_170919_R` | Fotografiada en la pantalla original |
-| Interfaces | USB-A, Bluetooth, Cloudrive, Radio, Media, CarInfo | Observación del vehículo |
-| Paquete de referencia | `T2 Android 10.rar` (RAR5) | Distribuido para Tiggo 2, **no compatible confirmado con Arrizo 3** |
-| Archivo `CheryLink.7z` | 1.515 archivos y 20 directorios | Listado local con 7-Zip |
-| Actualizador | `CheryLink_Update.exe` es PE32 Windows CE 6.00 ARMv4T | **Solo** binario de referencia |
-| Otros componentes | PE32 ARMv4T, APK y ELF ARM para Android | Paquete de referencia |
-| Función de Ghidra | `FUN_00011008`: recorrido recursivo y eliminación condicional | [Hallazgo RE-001](reports/RE-001-cherylink-cleanup.md) |
-| SO, SoC y memoria de la radio Arrizo 3 | Desconocidos | Falta identificar el hardware |
+**Estado: investigación en curso.** Ya hemos identificado la versión visible de la radio y analizado estáticamente una **actualización de CheryLink publicada para Tiggo 2**, utilizada únicamente como muestra comparativa. **No se ha identificado el sistema operativo de mi Arrizo 3, extraído su firmware ni descubierto una vulnerabilidad.**
 
-## Hallazgo RE-001: limpieza recursiva de CheryLink
+## Componentes y herramientas
 
-Al analizar estáticamente `CheryLink_Update.exe` con **Ghidra**, se estudió `FUN_00011008`, una rutina que recorre directorios, distingue carpetas y archivos, utiliza llamadas de Windows CE importadas por ordinal y procesa condiciones especiales para `EMMC_Check_File.txt` y `ceusbkwrapperdrv.dll`. También excluye las entradas `.` y `..` y trata de manera diferenciada la carpeta principal `\\CheryLink`.
+| Elemento | Uso en la investigación |
+|---|---|
+| Chery Arrizo 3 (2021) | Unidad multimedia original bajo estudio; sin modificaciones |
+| Paquete CheryLink para Tiggo 2 | Muestra de referencia, **no** firmware verificado para Arrizo 3 |
+| Arch Linux | Entorno de análisis |
+| Ghidra | Ingeniería inversa de ejecutables Windows CE ARMv4T |
+| `file`, `7z`, `strings`, `sha256sum` | Clasificación, listado y trazabilidad de muestras |
+| JADX / ADB | Investigación de la aplicación Android QDrive, del lado del teléfono |
+| Python | Scripts originales de triage estático y revisión previa a publicar |
+| Cardputer con Bit Pirate | Herramienta disponible para posibles pruebas futuras en banco aislado; **no conectada al vehículo** |
 
-El hallazgo describe **cómo trabaja un actualizador**, no una vulnerabilidad de seguridad ni una ejecución confirmada en nuestro automóvil. Las correspondencias exactas de algunos ordinales todavía requieren validación con la versión correspondiente de `COREDLL.dll`.
+## Resultados iniciales
 
-Más información: [Informe RE-001](reports/RE-001-cherylink-cleanup.md) · [Guía de Ghidra](docs/03-ghidra-wince.md).
+| Evidencia | Resultado | Alcance |
+|---|---|---|
+| Versión multimedia visible | `ARRIZO 3_02_31.01_170919_R` | Confirmada por fotografía del Arrizo 3 |
+| `CheryLink_Update.exe` | PE32, Windows CE 6.00, ARMv4T | **Tiggo 2**, no prueba el SO del Arrizo 3 |
+| `CheryLink.7z` | 1.515 archivos y 20 carpetas | Paquete de referencia |
+| Aplicaciones complementarias | Ejecutables PE, APK y ELF ARM | Paquete de referencia |
+| `FUN_00011008` | Recorrido recursivo y limpieza de archivos con excepciones | [Hallazgo RE-001](reports/RE-001-cherylink-cleanup.md) |
 
-## Estructura del proyecto
+En el primer hallazgo RE-001 estudié una rutina que recorre directorios, evita las entradas `.` y `..`, omite `EMMC_Check_File.txt` y contempla una excepción para `ceusbkwrapperdrv.dll`. **Es un análisis de funcionamiento, no un exploit.**
 
-- [Observaciones del vehículo](docs/01-oem-observations.md)
-- [Análisis del paquete de referencia](docs/02-reference-package.md)
-- [Metodología Ghidra / Windows CE](docs/03-ghidra-wince.md)
-- [Investigación de QDrive en Android](docs/04-qdrive-android.md)
-- [Seguridad y recuperación](docs/05-safety-and-recovery.md)
-- [Próximos pasos](docs/06-roadmap.md)
-- [Referencias](docs/references.md)
-- [Política de divulgación](SECURITY.md)
-- [Código de análisis](scripts/) y [pruebas](tests/)
+## Capturas y evidencias
 
-**Nota sobre idiomas:** el README principal está en español; [README.en.md](README.en.md) ofrece la descripción en inglés. La documentación técnica detallada conserva por ahora títulos y contenido en inglés y puede traducirse progresivamente.
+**Próximamente:** capturas de Ghidra revisadas y diagramas del flujo de actualización. Por seguridad, no se incluyen imágenes con MachineID, datos personales, claves ni archivos originales del fabricante.
 
-## Reproducir el análisis de forma local
+Consulta [Política de evidencias](evidence/README.md).
 
-Descarga por tus propios medios una muestra legítima en una carpeta **privada**, sin copiarla al USB del automóvil ni ejecutar el actualizador.
+## Estructura del repositorio
+
+```text
+docs/                # Observaciones, metodología, referencias y roadmap
+├── INSTALACION.md   # Preparar el laboratorio (español)
+├── SETUP.md         # Lab setup (English)
+reports/             # RE-001 y futuros informes técnicos
+scripts/             # Herramientas Python propias (solo lectura)
+tests/               # Pruebas de los scripts
+evidence/            # Política de capturas públicas
+README.md            # Español — principal
+README.es.md         # Entrada alternativa en español
+README.en.md         # English — secondary
+SECURITY.md          # Límites y divulgación responsable
+REVIEW_BEFORE_ANALYSIS.md
+```
+
+## Preparación y reproducción
+
+Lee [Preparación del laboratorio (español)](docs/INSTALACION.md) **antes de analizar una muestra**. Se trabaja con copias locales, no con la pantalla instalada en el automóvil.
 
 ```bash
-file 'T2 Android 10.rar'
-sha256sum 'T2 Android 10.rar'
-7z l -pcherydianos 'T2 Android 10.rar'
-# Desde la carpeta local donde extrajiste el paquete:
-7z l CheryLink.7z
-python scripts/static_triage.py CheryLink_Update.exe --json
-python scripts/pe_header_probe.py CheryLink_Update.exe
+git clone https://github.com/Ray1172004/arrizo3-research.git
+cd arrizo3-research
 python -m unittest discover -s tests -v
 python scripts/pre_publish_check.py
 ```
 
-Los scripts propios inspeccionan metadatos y cabeceras de archivos locales; **no ejecutan firmware de terceros**.
+La inspección de archivos externos se realiza por separado, en directorios privados. No distribuyo el firmware, el actualizador ni las APK propietarias.
 
-## Seguridad y ética
+## Limitaciones conocidas
 
-No se ha realizado flasheo, explotación de la pantalla instalada, inyección CAN ni modificación de la ECU u otros sistemas de conducción. La muestra de referencia contiene nombres de posibles claves ADB; por ese motivo, aquí **no se publican binarios propietarios, claves, VIN, MachineID ni registros privados**. Tener una copia de firmware tampoco implica contar con un método de recuperación demostrado.
+- La muestra pública estudiada pertenece al **Tiggo 2**. Su compatibilidad con Arrizo 3 es **desconocida**.
+- Falta identificar el fabricante, SoC, memoria y sistema operativo de la radio original.
+- No existe todavía un dump de firmware original del Arrizo 3 ni un procedimiento de recuperación probado.
+- Las correspondencias exactas de algunas importaciones por ordinal requieren validación.
+- Los scripts son auxiliares de análisis estático y **no** sustituyen una revisión de seguridad completa.
+- No se han realizado flasheos, pruebas de explotación ni modificaciones sobre el vehículo.
 
-## Siguientes hitos
+## Próximos pasos
 
-1. Validar correspondencias de funciones importadas mediante ordinales de Windows CE.
-2. Analizar la secuencia de copia y extracción del actualizador (**RE-002**).
-3. Identificar fabricante y referencia de hardware de la unidad Arrizo 3.
-4. Buscar firmware específico compatible y un procedimiento de recuperación probado antes de plantear modificaciones.
+- [x] Identificar versión visible y funciones originales de la pantalla
+- [x] Clasificar el paquete de referencia y su arquitectura Windows CE ARMv4T
+- [x] Documentar la primera función en Ghidra: [RE-001](reports/RE-001-cherylink-cleanup.md)
+- [x] Publicar la documentación inicial en español e inglés
+- [ ] Validar los ordinales de `COREDLL.dll` y el flujo de actualización (RE-002)
+- [ ] Incorporar capturas técnicas anonimizadas y diagramas
+- [ ] Identificar la referencia exacta de la unidad multimedia del Arrizo 3
+- [ ] Localizar un firmware específico y un método de recuperación verificable
 
-## Fuentes principales
+## Créditos
 
-- [CheryTeamEcuador — Actualización de la radio](https://cheryteamecuador.wixsite.com/team/post/actualizaci%C3%B3n-de-la-radio-carro) (paquete comunitario para Tiggo 2).
-- [Ghidra — NSA](https://github.com/NationalSecurityAgency/ghidra).
-- [Android Debug Bridge — Android Developers](https://developer.android.com/tools/adb).
+Investigación realizada con 💜 en Arch Linux por [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [Licencia del código propio](LICENSE) · [Seguridad](SECURITY.md).
 
-**Investigador:** [Ray1172004](https://github.com/Ray1172004) · **Licencia:** MIT para el código y contenido originales de este repositorio.
+Los nombres comerciales y el software de terceros pertenecen a sus respectivos titulares. Este repositorio solo publica documentación y herramientas originales, no binarios de Chery.
