@@ -72,6 +72,26 @@ local_18 = FUN_0001a100(
 
 El código también contempla la creación de subdirectorios a partir de los separadores `/` de los nombres almacenados en el archivo. En esta revisión no se ha comprobado cómo maneja nombres maliciosos o rutas fuera del directorio de destino: **no se afirma una vulnerabilidad de extracción**.
 
+## Comprobación de `FUN_00013ef0`: creación de directorios
+
+El pseudocódigo obtenido de Ghidra permite confirmar otra correspondencia con el SDK LZMA:
+
+```c
+iVar1 = Ordinal_160(param_1, 0);
+if (iVar1 == 0) {
+    local_14 = Ordinal_516();
+} else {
+    local_14 = 0;
+}
+return local_14;
+```
+
+Una tabla histórica de `COREDLL.dll` identifica `Ordinal_160` como `CreateDirectoryW` y `Ordinal_516` como `GetLastError`. Las firmas y la lógica coinciden con `MyCreateDir` de `7zMain.c` (2010): **devolver 0 si la creación tiene éxito y el código de error del sistema si falla**.
+
+En `FUN_000135c8`, el resultado de algunas llamadas a `FUN_00013ef0` no se comprueba inmediatamente. Esto se observa también en el ejemplo de 7-Zip; por sí solo no demuestra un fallo de seguridad. `CreateDirectoryW` únicamente crea el último segmento de una ruta, por lo que el llamador prepara las carpetas intermedias.
+
+Fuentes: [`7zMain.c`, líneas de `MyCreateDir`](https://android.googlesource.com/platform/external/lzma/+/kitkat-dev/C/Util/7z/7zMain.c) · [Microsoft: CreateDirectory en Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/aa517316%28v%3Dmsdn.10%29) · [Exportaciones históricas COREDLL](https://blog.ch3cooh.jp/entry/20100803/1280838036).
+
 ## Relación con el vehículo
 
 El comportamiento descrito pertenece a un actualizador obtenido como referencia para **Tiggo 2**. No demuestra qué procesador, sistema operativo o firmware utiliza la unidad original del **Arrizo 3**. El vehículo no ha sido modificado.
