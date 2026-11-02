@@ -48,6 +48,23 @@ entry()
 
 Las cadenas `can not open input file`, `can not open output file`, `can not write output file`, `can not close output file` y `Everything is Ok` refuerzan la identificación: también aparecen en el ejemplo público `7zMain.c`.
 
+## Rutas de origen y destino confirmadas
+
+Al examinar las constantes que recibe `FUN_000141c0` en Ghidra, se identificaron dos cadenas ASCII:
+
+| Dirección | Cadena | Uso |
+| --- | --- | --- |
+| `0x0002e51c` | `CHERYLINK//CheryLink.7z` | Archivo 7z que se pasa como origen |
+| `0x0002e510` | `CHERYLINK` | Directorio base para la extracción |
+
+La llamada de `entry` se puede interpretar así (nombres explicativos, no código fuente original):
+
+```c
+FUN_000141c0("CHERYLINK//CheryLink.7z", "CHERYLINK");
+```
+
+En `FUN_000141c0`, el primer argumento se entrega a `FUN_000135c8`; el segundo se transforma en un búfer local y se pasa como directorio de salida. Las rutas son **relativas**: su ubicación física depende del contexto de ejecución del actualizador. Esta observación se refiere al paquete de referencia **Tiggo 2**, no a la pantalla original del Arrizo 3.
+
 ## Fragmentos relevantes
 
 La llamada que probablemente descomprime cada entrada:
