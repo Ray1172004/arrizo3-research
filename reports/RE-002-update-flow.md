@@ -1,72 +1,59 @@
-# RE-002 — Flujo inicial de CheryLink_Update.exe
+# RE-002 — Copia y preparación de extracción en CheryLink_Update.exe
 
-**Muestra:** `CheryLink_Update.exe` del paquete CheryLink distribuido para Tiggo 2.  
-**Método:** análisis estático en Ghidra (PE32, Windows CE / ARMv4T).  
-**Estado:** análisis parcial.
+[English](RE-002-update-flow.en.md)
 
-## Entrada del actualizador
+Muestra: `CheryLink_Update.exe`, incluida en una actualización comunitaria de CheryLink para **Tiggo 2**. Análisis estático con Ghidra sobre un ejecutable PE32 ARMv4T para Windows CE. Este informe **no** describe el firmware original del Arrizo 3.
 
-En `entry`, después del mensaje de registro `begin remove file`, se observa una llamada a `FUN_00011008(0x2e2d0)` (alrededor de `0x00011504`). El argumento corresponde a la cadena Unicode `\CheryLink`.
+## Secuencia observada
 
-El valor de retorno se compara con cero. La ruta del resultado cero está asociada al registro `remove file OK` y continúa con otras operaciones.
+El punto de entrada (`entry`) registra `begin remove file` y llama a `FUN_00011008`, documentada en [RE-001](RE-001-cherylink-cleanup.md). Si esa función devuelve cero, continúa el proceso:
 
-```text
-entry()
-  ├─ registro: begin remove file
-  ├─ FUN_00011008("\CheryLink")   [RE-001]
-  └─ comprobar valor devuelto
-       ├─ igual a cero → registro remove file OK; continúa
-       └─ distinto de cero → otra rama pendiente de examinar
-```
+1. Construye una ruta de origen terminada en `\\CheryLink.7z` mediante `Ordinal_56`.
+2. Abre el origen con `Ordinal_1145` (compatible con `_wfopen`).
+3. Abre `CHERYLINK//CheryLink.7z` como destino con `Ordinal_1113` (compatible con `fopen`).
+4. Utiliza `Ordinal_1130`, `Ordinal_1131` y `Ordinal_1130` para ir al final, consultar la posición y regresar al inicio del origen (`fseek`, `ftell`, `fseek`).
+5. Lee bloques de hasta `0x400` bytes (1024) con `Ordinal_1120` (`fread`) y los escribe con `Ordinal_1121` (`fwrite`).
+6. Compara el total contabilizado como escrito (`local_8a0`) con la posición final del origen (`local_8b4`). Cuando coinciden, registra `copy data success` y cierra ambos flujos mediante `Ordinal_1118` (`fclose`).
+7. Llama a `FUN_000141c0(0x2e51c, 0x2e510)`. Si su resultado es cero, registra `ExtractFile OK` e intenta eliminar el archivo temporal `CHERYLINK//CheryLink.7z` con `Ordinal_165` (compatible con `DeleteFileW`). Si devuelve otro valor, registra `ExtractFile fail`.
 
-La función de limpieza `FUN_00011008` ya se documentó en [RE-001](RE-001-cherylink-cleanup.md). El registro de éxito no garantiza que todas las operaciones internas de borrado se hayan completado sin incidencia.
+Las correspondencias por ordinal se apoyan en tablas comunitarias de COREDLL para Windows Mobile 6.0 y en las firmas de la biblioteca C documentadas por Microsoft. No se dispone de la tabla de exportación exacta usada al compilar esta muestra.
 
-## Otras cadenas identificadas
+## Bucle de lectura y escritura
 
-En la muestra se encontraron `begin copy data`, `copy data success`, `ExtractFile OK`, `ExtractFile fail`, `UPDATE END` y la ruta `CHERYLINK//CheryLink.7z`.
-
-Estas cadenas **sugieren** una fase de transferencia o extracción del archivo, pero por sí solas no establecen el orden, los controles de integridad, los destinos ni las condiciones de error. Para confirmar el comportamiento debemos seguir sus referencias cruzadas y revisar las funciones invocadas.
-
-## Apertura del archivo y lectura en bloques
-
-Un fragmento adicional de `entry`, obtenido directamente del Decompiler de Ghidra, permite identificar la preparación del flujo de lectura:
+El siguiente fragmento fue copiado de la decompilación compartida por el investigador; los nombres permanecen tal como los genera Ghidra.
 
 ```c
-Ordinal_56(&local_ac0, L"%s\\CheryLink.7z", &local_894);
-local_8ac = Ordinal_1145(&local_ac0, &DAT_0002e388);
-if (local_8ac == 0) { /* open fromfile fail */ }
-else {
-    local_8a8 = Ordinal_1113("CHERYLINK//CheryLink.7z", &DAT_0002e408);
-    if (local_8a8 == 0) { /* open tofile fail */ }
-    else {
-        Ordinal_1130(local_8ac, 0, 2);
-        local_8b4 = Ordinal_1131(local_8ac);
-        Ordinal_1130(local_8ac, 0, 0);
-        do {
-            local_898 = Ordinal_1120(auStack_684, 1, 0x400, local_8ac);
-            if ((local_898 == 0) || (local_898 == -1)) goto LAB_00011844;
-            /* continuación aún no examinada */
-        } while (/* condición pendiente */);
+local_898 = Ordinal_1120(auStack_684, 1, 0x400, local_8ac);
+if ((local_898 == 0) || (local_898 == -1)) goto LAB_00011844;
+
+local_8a4 = auStack_684;
+while (true) {
+    local_8b0 = Ordinal_1121(local_8a4, 1, local_898, local_8a8);
+    if ((local_8b0 == 0) || (local_8b0 == -1)) goto LAB_00011830;
+    if (local_8b0 == local_898) break;
+    if (0 < local_8b0) {
+        local_8a4 = local_8a4 + local_8b0;
+        local_898 = local_898 - local_8b0;
     }
+    local_8a0 = local_8a0 + local_8b0;
 }
+local_8a0 = local_8a0 + local_8b0;
 ```
 
-La tabla comunitaria de exportaciones de COREDLL de Windows Mobile 6.0 relaciona los ordinales `56`, `1145`, `1113`, `1130`, `1131` y `1120` con `wsprintfW`, `_wfopen`, `fopen`, `fseek`, `ftell` y `fread` respectivamente. La API `fwrite` figura como ordinal `1121`, pero **todavía no se ha localizado su llamada en el código compartido**. La documentación de Microsoft confirma las firmas funcionales; las correspondencias ordinales concretas deben verificarse para la biblioteca usada por esta muestra.
+Ante una escritura parcial positiva, mueve el puntero del búfer, reduce la cantidad pendiente y vuelve a escribir. La comprobación final compara **cantidad** de bytes, no el contenido mediante un hash. No se puede descartar una validación adicional dentro de la función de extracción sin analizarla.
 
-**Interpretación:** primero se prepara una ruta con el nombre `CheryLink.7z`, se intenta abrir el origen y después el destino. El programa lleva el puntero de lectura al final, consulta su posición (presumiblemente para conocer el tamaño), vuelve al inicio y solicita hasta `0x400` (1024) bytes por iteración con una llamada compatible con `fread`.
+## Tratamiento de errores
 
-Los modos de apertura se reciben desde `DAT_0002e388` y `DAT_0002e408`, cuyo contenido aún no se ha inspeccionado. Todavía **no está confirmado el código que escribe los bloques, la validación del tamaño final ni el procedimiento de extracción**. Por ello, este documento describe la *preparación y lectura del archivo*, no una copia íntegra verificada.
+El código registra condiciones de fallo distintas para apertura del origen, apertura del destino, copia y extracción.
 
-## Referencias técnicas
+Se observó una diferencia relevante: en la rama donde ambos archivos se abren correctamente, `entry` asigna `local_74 = 0` al finalizar incluso si se registró `copy data fail` o `ExtractFile fail`. Esto puede dificultar que un programa externo distinga los fallos si solo consulta el valor de retorno. No se ha demostrado que exista un proceso que dependa de ese valor ni que sea una vulnerabilidad explotable.
+
+Las cadenas de modo de apertura están referenciadas mediante `DAT_0002e388` y `DAT_0002e408`; no se han inspeccionado aún. El comportamiento interno de `FUN_000141c0` sigue pendiente de analizarse.
+
+## Referencias
 
 - [RE-001 — Limpieza recursiva](RE-001-cherylink-cleanup.md).
-- [Microsoft — FindFirstFile en Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms923968%28v%3Dmsdn.10%29).
-- [Microsoft — FindNextFile en Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms923971%28v%3Dmsdn.10%29).
-- [Microsoft — FindClose en Windows CE](https://learn.microsoft.com/en-us/previous-versions/ms960590%28v%3Dmsdn.10%29).
-
-- [Microsoft — fopen / _wfopen (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859631%28v%3Dmsdn.10%29).
-- [Microsoft — fseek (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859641%28v%3Dmsdn.10%29).
-- [Microsoft — ftell (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859644%28v%3Dmsdn.10%29).
-- [Listado comunitario de exportaciones COREDLL (Windows Mobile 6.0)](https://www.cnblogs.com/huanglong/archive/2012/03/13/2393275.html) — útil como referencia, no confirmado para este dispositivo.
-
-La radio original del Arrizo 3 no ha sido identificada como Windows CE. Este informe analiza una **muestra de referencia para Tiggo 2**, no firmware extraído del vehículo.
+- [fopen / _wfopen (Windows CE), Microsoft](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859631%28v%3Dmsdn.10%29).
+- [fwrite (Windows CE), Microsoft](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859645%28v%3Dmsdn.10%29).
+- [ftell (Windows CE), Microsoft](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859644%28v%3Dmsdn.10%29).
+- [COREDLL Windows Mobile 6.0, tabla comunitaria](https://www.cnblogs.com/huanglong/archive/2012/03/13/2393275.html).
