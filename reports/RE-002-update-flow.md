@@ -48,7 +48,27 @@ El código registra condiciones de fallo distintas para apertura del origen, ape
 
 Se observó una diferencia relevante: en la rama donde ambos archivos se abren correctamente, `entry` asigna `local_74 = 0` al finalizar incluso si se registró `copy data fail` o `ExtractFile fail`. Esto puede dificultar que un programa externo distinga los fallos si solo consulta el valor de retorno. No se ha demostrado que exista un proceso que dependa de ese valor ni que sea una vulnerabilidad explotable.
 
-Las cadenas de modo de apertura están referenciadas mediante `DAT_0002e388` y `DAT_0002e408`; no se han inspeccionado aún. El comportamiento interno de `FUN_000141c0` sigue pendiente de analizarse.
+Las cadenas de modo de apertura están referenciadas mediante `DAT_0002e388` y `DAT_0002e408`; no se han inspeccionado aún. La función `FUN_000141c0` ya fue inspeccionada: actúa como intermediaria y delega la operación a `FUN_000135c8`. El contenido de las cadenas de parámetros y el comportamiento de `FUN_000135c8` siguen pendientes de comprobar.
+
+
+## Intermediario de extracción: `FUN_000141c0`
+
+La función `entry` llama a `FUN_000141c0(0x2e51c, 0x2e510)` tras la copia. La decompilación completa muestra que se trata de un intermediario relativamente pequeño:
+
+```c
+undefined4 FUN_000141c0(int param_1, int param_2)
+{
+    // ... inicialización de variables locales
+    local_18 = Ordinal_1068(param_2);
+    FUN_000134a4((int)&local_228, param_2, local_18);
+    uVar1 = FUN_000135c8(param_1, (int)&local_228);
+    return uVar1;
+}
+```
+
+`Ordinal_1068` probablemente obtiene una longitud y `FUN_000134a4` prepara una copia en un búfer local; esta interpretación está pendiente de confirmar. La llamada `FUN_000135c8` recibe el primer argumento original y la dirección de ese búfer, y su resultado se devuelve a `entry` sin alterar su valor.
+
+**No se ha demostrado aún que `FUN_000135c8` implemente la descompresión:** podría preparar otra etapa o delegarla a más funciones. También están pendientes de identificar los datos en las direcciones `0x0002e510` y `0x0002e51c`.
 
 ## Referencias
 
