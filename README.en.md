@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚘 R3TR0 | Arrizo 3 Research
+# R3TR0 | Arrizo 3 Research
 
 **Reverse engineering a legacy automotive infotainment system: Chery Arrizo 3, CheryLink and Windows CE.**
 
@@ -43,11 +43,13 @@
 
 RE-001 describes a routine that traverses directories, skips `.` and `..`, excludes `EMMC_Check_File.txt`, and handles a special case for `ceusbkwrapperdrv.dll`. **This is behavioral reverse engineering, not an exploit.**
 
-## Preview and evidence
+## Visual evidence
 
-**Coming soon:** sanitized Ghidra screenshots and update-flow diagrams. MachineID, personal identifiers, private key material and proprietary vendor binaries will not be published.
+![Debug strings identified in Ghidra](evidence/ghidra-defined-strings.jpg)
 
-See the [public evidence policy](evidence/README.md).
+*Figure 1. Strings found in the Tiggo 2 reference CheryLink updater. This is not firmware extracted from the Arrizo 3.*
+
+Further images will be added after quality and privacy review.
 
 ## Repository structure
 
@@ -101,6 +103,6 @@ Vendor firmware, executable update packages and proprietary APKs are intentional
 
 ## Credits
 
-Built with 💜 on Arch Linux by [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [License for original work](LICENSE) · [Security policy](SECURITY.md).
+Research conducted on Arch Linux by [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [License for original work](LICENSE) · [Security policy](SECURITY.md).
 
 Third-party names, firmware and software remain the property of their owners. Only original research and utilities are provided here.
