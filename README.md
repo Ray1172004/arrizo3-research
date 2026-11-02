@@ -81,26 +81,6 @@ python scripts/pre_publish_check.py
 
 La inspección de archivos externos se realiza por separado, en directorios privados. No distribuyo el firmware, el actualizador ni las APK propietarias.
 
-## Limitaciones conocidas
-
-- La muestra pública estudiada pertenece al **Tiggo 2**. Su compatibilidad con Arrizo 3 es **desconocida**.
-- Falta identificar el fabricante, SoC, memoria y sistema operativo de la radio original.
-- No existe todavía un dump de firmware original del Arrizo 3 ni un procedimiento de recuperación probado.
-- Las correspondencias exactas de algunas importaciones por ordinal requieren validación.
-- Los scripts son auxiliares de análisis estático y **no** sustituyen una revisión de seguridad completa.
-- No se han realizado flasheos, pruebas de explotación ni modificaciones sobre el vehículo.
-
-## Próximos pasos
-
-- [x] Identificar versión visible y funciones originales de la pantalla
-- [x] Clasificar el paquete de referencia y su arquitectura Windows CE ARMv4T
-- [x] Documentar la primera función en Ghidra: [RE-001](reports/RE-001-cherylink-cleanup.md)
-- [x] Publicar la documentación inicial en español e inglés
-- [ ] Validar los ordinales de `COREDLL.dll` y el flujo de actualización (RE-002)
-- [ ] Incorporar capturas técnicas anonimizadas y diagramas
-- [ ] Identificar la referencia exacta de la unidad multimedia del Arrizo 3
-- [ ] Localizar un firmware específico y un método de recuperación verificable
-
 ## Créditos
 
 Investigación realizada en Arch Linux por [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [Licencia del código propio](LICENSE) · [Seguridad](SECURITY.md).
