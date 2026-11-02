@@ -1,72 +1,59 @@
-# RE-002 — Initial CheryLink_Update.exe control flow
+# RE-002 — CheryLink_Update.exe copy and extraction preparation
 
-**Sample:** `CheryLink_Update.exe` from a Tiggo 2 community CheryLink update.  
-**Method:** Ghidra static analysis (PE32, Windows CE / ARMv4T).  
-**Status:** partial analysis.
+[Español](RE-002-update-flow.md)
 
-## Entry point
+Sample: `CheryLink_Update.exe` from a community **Tiggo 2** CheryLink update. Offline Ghidra static analysis of a Windows CE ARMv4T PE32 binary. This is **not** an Arrizo 3 firmware dump.
 
-Within `entry`, a `begin remove file` log is followed by a call to `FUN_00011008(0x2e2d0)` near address `0x00011504`. The argument points to the Unicode string `\CheryLink`.
+## Observed execution flow
 
-The return value is compared against zero. The zero-value branch logs `remove file OK` and continues into other updater operations.
+The `entry` function logs `begin remove file` and calls `FUN_00011008` (see [RE-001](RE-001-cherylink-cleanup.en.md)). On a zero return code:
 
-```text
-entry()
-  ├─ log begin remove file
-  ├─ FUN_00011008("\CheryLink")   [RE-001]
-  └─ inspect return value
-       ├─ zero → log remove file OK; continue
-       └─ nonzero → alternative branch not yet traced
-```
+1. Format a source path ending in `\\CheryLink.7z` via `Ordinal_56`.
+2. Open the source with `Ordinal_1145` (consistent with `_wfopen`).
+3. Open destination `CHERYLINK//CheryLink.7z` with `Ordinal_1113` (consistent with `fopen`).
+4. Seek to the end, read the source position, then return to the beginning using `Ordinal_1130`, `Ordinal_1131` and `Ordinal_1130` (consistent with `fseek` / `ftell`).
+5. Read up to `0x400` bytes (1024) via `Ordinal_1120` (`fread`) and write with `Ordinal_1121` (`fwrite`).
+6. Compare counted written bytes (`local_8a0`) against source end position (`local_8b4`). If equal, log `copy data success` and close both streams using `Ordinal_1118` (`fclose`).
+7. Call `FUN_000141c0(0x2e51c, 0x2e510)`. A zero return produces `ExtractFile OK` and an attempt to delete the temporary `CHERYLINK//CheryLink.7z` through `Ordinal_165` (consistent with `DeleteFileW`). Otherwise the program logs `ExtractFile fail`.
 
-The recursive cleanup routine is documented in [RE-001](RE-001-cherylink-cleanup.en.md). A success log is not proof that every internal deletion succeeded.
+Ordinal mappings are consistent with Windows Mobile 6.0 COREDLL community exports and Microsoft C runtime documentation. The exact export table used by this binary has not been obtained.
 
-## Additional observed strings
+## Read/write loop
 
-The sample contains `begin copy data`, `copy data success`, `ExtractFile OK`, `ExtractFile fail`, `UPDATE END` and `CHERYLINK//CheryLink.7z`.
-
-These strings **suggest** a copy or archive-extraction stage, but do not alone establish sequence, integrity checks, destinations or error handling. These claims require following cross-references and reading the relevant functions.
-
-## File opening and chunked reading
-
-A further `entry` decompiler excerpt shows preparation of a file-read loop:
+The following fragment is taken from the shared Ghidra decompilation:
 
 ```c
-Ordinal_56(&local_ac0, L"%s\\CheryLink.7z", &local_894);
-local_8ac = Ordinal_1145(&local_ac0, &DAT_0002e388);
-if (local_8ac == 0) { /* open fromfile fail */ }
-else {
-    local_8a8 = Ordinal_1113("CHERYLINK//CheryLink.7z", &DAT_0002e408);
-    if (local_8a8 == 0) { /* open tofile fail */ }
-    else {
-        Ordinal_1130(local_8ac, 0, 2);
-        local_8b4 = Ordinal_1131(local_8ac);
-        Ordinal_1130(local_8ac, 0, 0);
-        do {
-            local_898 = Ordinal_1120(auStack_684, 1, 0x400, local_8ac);
-            if ((local_898 == 0) || (local_898 == -1)) goto LAB_00011844;
-            /* remaining body not yet examined */
-        } while (/* condition not yet examined */);
+local_898 = Ordinal_1120(auStack_684, 1, 0x400, local_8ac);
+if ((local_898 == 0) || (local_898 == -1)) goto LAB_00011844;
+
+local_8a4 = auStack_684;
+while (true) {
+    local_8b0 = Ordinal_1121(local_8a4, 1, local_898, local_8a8);
+    if ((local_8b0 == 0) || (local_8b0 == -1)) goto LAB_00011830;
+    if (local_8b0 == local_898) break;
+    if (0 < local_8b0) {
+        local_8a4 = local_8a4 + local_8b0;
+        local_898 = local_898 - local_8b0;
     }
+    local_8a0 = local_8a0 + local_8b0;
 }
+local_8a0 = local_8a0 + local_8b0;
 ```
 
-A community Windows Mobile 6.0 COREDLL export table maps ordinals `56`, `1145`, `1113`, `1130`, `1131`, `1120` to `wsprintfW`, `_wfopen`, `fopen`, `fseek`, `ftell`, `fread`. Ordinal `1121` is listed as `fwrite`, but **its call has not yet been observed in the provided excerpt**. Microsoft documents the API signatures; exact ordinal assignments for the sampled library remain to be validated.
+After a positive partial write, it advances the buffer pointer and retries the remaining bytes. The comparison is a **byte-count check**, not a cryptographic content check. Additional validation could occur inside the extraction routine; that has not been inspected.
 
-**Interpretation:** the updater builds a source filename ending in `CheryLink.7z`, opens source and destination streams, seeks to the source end, obtains the file position (likely size), returns to its beginning and requests chunks of at most `0x400` (1024) bytes.
+## Error handling observation
 
-The file modes reside at `DAT_0002e388` and `DAT_0002e408`, not yet inspected. The actual write operation, completed-byte checks and archive extraction stage are **not yet demonstrated**. This section documents setup and reading, not a verified complete copy.
+Source-open, destination-open, copy and extraction failures have separate log messages.
 
-## Technical references
+When both streams opened successfully, `entry` ultimately sets `local_74 = 0` even after logging `copy data fail` or `ExtractFile fail`. An external caller relying only on the exit status might therefore miss these failures. No such caller or exploitable impact has been demonstrated.
 
-- [RE-001 — Recursive directory cleanup](RE-001-cherylink-cleanup.en.md).
-- [Microsoft — FindFirstFile on Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms923968%28v%3Dmsdn.10%29).
-- [Microsoft — FindNextFile on Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms923971%28v%3Dmsdn.10%29).
-- [Microsoft — FindClose on Windows CE](https://learn.microsoft.com/en-us/previous-versions/ms960590%28v%3Dmsdn.10%29).
+The actual mode strings at `DAT_0002e388` and `DAT_0002e408` have not yet been inspected. The body of `FUN_000141c0` remains to be reviewed.
 
-- [Microsoft — fopen / _wfopen (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859631%28v%3Dmsdn.10%29).
-- [Microsoft — fseek (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859641%28v%3Dmsdn.10%29).
-- [Microsoft — ftell (Windows CE)](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859644%28v%3Dmsdn.10%29).
-- [Listado comunitario de exportaciones COREDLL (Windows Mobile 6.0)](https://www.cnblogs.com/huanglong/archive/2012/03/13/2393275.html) — útil como referencia, no confirmado para este dispositivo.
+## References
 
-Nothing in this reference Tiggo 2 sample establishes the operating system of the Arrizo 3 head unit.
+- [RE-001 — Recursive cleanup](RE-001-cherylink-cleanup.en.md).
+- [fopen / _wfopen, Microsoft Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859631%28v%3Dmsdn.10%29).
+- [fwrite, Microsoft Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859645%28v%3Dmsdn.10%29).
+- [ftell, Microsoft Windows CE](https://learn.microsoft.com/en-us/previous-versions/windows/embedded/ms859644%28v%3Dmsdn.10%29).
+- [COREDLL Windows Mobile 6.0 community exports](https://www.cnblogs.com/huanglong/archive/2012/03/13/2393275.html).
