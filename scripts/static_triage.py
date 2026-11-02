@@ -27,4 +27,4 @@ if __name__ == "__main__":
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
     result = triage(args.path)
-    print(json.dumps(result, indent=2) if args.json else "\\n".join(f"{k}: {v}" for k, v in result.items()))
+    print(json.dumps(result, indent=2) if args.json else "\n".join(f"{k}: {v}" for k, v in result.items()))
