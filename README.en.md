@@ -81,26 +81,6 @@ python scripts/pre_publish_check.py
 
 Vendor firmware, executable update packages and proprietary APKs are intentionally not redistributed.
 
-## Known limitations
-
-- The reference package is for **Tiggo 2**, not verified for Arrizo 3.
-- Actual Arrizo 3 head-unit OEM, processor, memory and OS remain unknown.
-- No Arrizo 3 firmware dump or proven recovery path.
-- Exact Windows CE import ordinal mappings require validation.
-- Scripts are basic static-analysis aids and cannot replace a security review.
-- No flashing, exploitation or vehicle modifications have occurred.
-
-## Roadmap
-
-- [x] Document the vehicle's displayed software version and interfaces
-- [x] Classify Windows CE ARMv4T reference binary formats
-- [x] Document initial Ghidra finding [RE-001](reports/RE-001-cherylink-cleanup.en.md)
-- [x] Create Spanish and English project documentation
-- [ ] Validate COREDLL ordinals and investigate update flow (RE-002)
-- [ ] Add sanitized evidence and diagrams
-- [ ] Identify the exact Arrizo 3 head-unit hardware
-- [ ] Locate model-matched firmware and verify a recovery method
-
 ## Credits
 
 Research conducted on Arch Linux by [@Ray1172004](https://github.com/Ray1172004). [LinkedIn](https://www.linkedin.com/in/matheo-camacho/) · [License for original work](LICENSE) · [Security policy](SECURITY.md).
